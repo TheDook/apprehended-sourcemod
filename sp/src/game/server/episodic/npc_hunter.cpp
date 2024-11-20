@@ -7150,6 +7150,311 @@ public:
 
 LINK_ENTITY_TO_CLASS( npc_hunter_maker, CHunterMaker );
 
+//=========================================================
+//=========================================================
+// The meaner and stronger prototype upgrade for Hunters
+//=========================================================
+//=========================================================
+class CNPC_EliteHunter : public CNPC_Hunter
+{
+	DECLARE_CLASS(CNPC_EliteHunter, CNPC_Hunter);
+public:
+	CNPC_EliteHunter();
+	~CNPC_EliteHunter();
+
+	//---------------------------------
+
+	void			Precache();
+	void			Spawn();
+	virtual void	TraceAttack(const CTakeDamageInfo &inputInfo, const Vector &vecDir, trace_t *ptr, CDmgAccumulator *pAccumulator) override;
+
+private:
+	void			GetShootDir(Vector &vecDir, const Vector &vecSrc, CBaseEntity *pTargetEntity, bool bStriderBuster, int nShotNum, bool bSingleShot);
+	bool			ClampShootDir(Vector &vecDir);
+	virtual bool	ShootFlechette(CBaseEntity *pTargetEntity, bool bSingleShot) override;
+
+	DECLARE_DATADESC();
+};
+
+CNPC_EliteHunter::CNPC_EliteHunter()
+{
+
+}
+
+CNPC_EliteHunter::~CNPC_EliteHunter()
+{
+
+}
+
+void CNPC_EliteHunter::Precache()
+{
+	PrecacheModel("models/hunter_elite.mdl");
+	PropBreakablePrecacheAll(MAKE_STRING("models/hunter_elite.mdl"));
+	UTIL_PrecacheOther("prop_combine_ball");
+	UTIL_PrecacheOther("env_entity_dissolver");
+	BaseClass::Precache();
+}
+
+//CUSTOM CONVARS
+ConVar elite_hunter_flechette_speed("elite_hunter_flechette_speed", "1000");
+ConVar elite_hunter_flechette_volley_size("elite_hunter_flechette_volley_size", "8");
+ConVar elite_hunter_flechette_mass("elite_hunter_flechette_mass", "4");
+ConVar elite_hunter_flechette_radius("elite_hunter_flechette_radius", "4");
+ConVar elite_hunter_flechette_duration("elite_hunter_flechette_duration", "4");
+ConVar sk_elite_hunter_health("sk_elite_hunter_health", "420");
+
+void CNPC_EliteHunter::Spawn()
+{
+	BaseClass::Spawn();
+	SetModel("models/hunter_elite.mdl");
+	m_iHealth = m_iMaxHealth = sk_elite_hunter_health.GetInt();
+}
+
+void CNPC_EliteHunter::GetShootDir(Vector &vecDir, const Vector &vecSrc, CBaseEntity *pTargetEntity, bool bStriderBuster, int nShotNum, bool bSingleShot)
+{
+	//RestartGesture( ACT_HUNTER_GESTURE_SHOOT );
+
+	EmitSound("NPC_Hunter.FlechetteShoot");
+
+	Vector vecBodyTarget;
+
+	if (pTargetEntity->Classify() == CLASS_PLAYER_ALLY_VITAL)
+	{
+		// Shooting at Alyx, most likely (in EP2). The attack is designed to displace
+		// her, not necessarily actually harm her. So shoot at the area around her feet.
+		vecBodyTarget = pTargetEntity->GetAbsOrigin();
+	}
+	else
+	{
+		vecBodyTarget = pTargetEntity->BodyTarget(vecSrc);
+	}
+
+	Vector vecTarget = vecBodyTarget;
+
+	Vector vecDelta = pTargetEntity->GetAbsOrigin() - GetAbsOrigin();
+	float flDist = vecDelta.Length();
+
+	if (!bStriderBuster)
+	{
+		// If we're not firing at a strider buster, miss in an entertaining way for the 
+		// first three shots of each volley.
+		if ((nShotNum < 3) && (flDist > 200))
+		{
+			Vector vecTargetForward;
+			Vector vecTargetRight;
+			pTargetEntity->GetVectors(&vecTargetForward, &vecTargetRight, NULL);
+
+			Vector vecForward;
+			GetVectors(&vecForward, NULL, NULL);
+
+			float flDot = DotProduct(vecTargetForward, vecForward);
+
+			if (flDot < -0.8f)
+			{
+				// Our target is facing us, shoot the ground between us.
+				float flPerc = 0.7 + (0.1 * nShotNum);
+				vecTarget = GetAbsOrigin() + (flPerc * (pTargetEntity->GetAbsOrigin() - GetAbsOrigin()));
+			}
+			else if (flDot > 0.8f)
+			{
+				// Our target is facing away from us, shoot to the left or right.
+				Vector vecMissDir = vecTargetRight;
+				if (GetMissLeft())
+				{
+					vecMissDir *= -1.0f;
+				}
+
+				vecTarget = pTargetEntity->EyePosition() + (36.0f * (3 - nShotNum)) * vecMissDir;
+			}
+			else
+			{
+				// Our target is facing vaguely perpendicular to us, shoot across their view.
+				vecTarget = pTargetEntity->EyePosition() + (36.0f * (3 - nShotNum)) * vecTargetForward;
+			}
+		}
+		// If we can't see them, shoot where we last saw them.
+		else if (!HasCondition(COND_SEE_ENEMY))
+		{
+			Vector vecDelta = vecTarget - pTargetEntity->GetAbsOrigin();
+			vecTarget = GetLastSeenVector() + vecDelta;
+		}
+	}
+	else
+	{
+		// If we're firing at a striderbuster, lead it.
+		float flSpeed = hunter_flechette_speed.GetFloat();
+		if (!flSpeed)
+		{
+			flSpeed = 2500.0f;
+		}
+
+		flSpeed *= 1.5;
+
+		float flDeltaTime = flDist / flSpeed;
+		vecTarget = vecTarget + flDeltaTime * pTargetEntity->GetSmoothedVelocity();
+	}
+
+	vecDir = vecTarget - vecSrc;
+	VectorNormalize(vecDir);
+}
+
+bool CNPC_EliteHunter::ClampShootDir(Vector &vecDir)
+{
+	Vector vecDir2D = vecDir;
+	vecDir2D.z = 0;
+
+	Vector vecForward;
+	GetVectors(&vecForward, NULL, NULL);
+
+	Vector vecForward2D = vecForward;
+	vecForward2D.z = 0;
+
+	float flDot = DotProduct(vecForward2D, vecDir2D);
+	if (flDot >= HUNTER_SHOOT_MAX_YAW_COS)
+	{
+		// No need to clamp.
+		return false;
+	}
+
+	Vector vecAxis;
+	CrossProduct(vecDir, vecForward, vecAxis);
+	VectorNormalize(vecAxis);
+
+	Quaternion q;
+	AxisAngleQuaternion(vecAxis, -HUNTER_SHOOT_MAX_YAW_DEG, q);
+
+	matrix3x4_t rot;
+	QuaternionMatrix(q, rot);
+	VectorRotate(vecForward, rot, vecDir);
+	VectorNormalize(vecDir);
+
+	return true;
+}
+
+bool CNPC_EliteHunter::ShootFlechette(CBaseEntity *pTargetEntity, bool bSingleShot)
+{
+	//Msg("SHOOT\n");
+	if (!pTargetEntity)
+	{
+		Assert(false);
+		return false;
+	}
+
+	int nShotNum = elite_hunter_flechette_volley_size.GetInt() - GetFlechettesQueued();
+
+	bool bStriderBuster = IsStriderBuster(pTargetEntity);
+
+	// Choose the next muzzle to shoot from.
+	Vector vecSrc;
+	QAngle angMuzzle;
+
+	if (GetTopMuzzle())
+	{
+		GetAttachment(GetTopGun(), vecSrc, angMuzzle);
+		DoMuzzleFlash(GetTopGun());
+	}
+	else
+	{
+		GetAttachment(GetBottomGun(), vecSrc, angMuzzle);
+		DoMuzzleFlash(GetBottomGun());
+	}
+
+	SwitchMuzzle();
+
+	Vector vecDir;
+	GetShootDir(vecDir, vecSrc, pTargetEntity, bStriderBuster, nShotNum, bSingleShot);
+
+	bool bClamped = false;
+	if (hunter_clamp_shots.GetBool())
+	{
+		bClamped = ClampShootDir(vecDir);
+	}
+
+	CShotManipulator manipulator(vecDir);
+	Vector vecShoot;
+
+	if (IsUsingSiegeTargets() && nShotNum >= 2 && (nShotNum % 2) == 0)
+	{
+		// Near perfect accuracy for these three shots, so they are likely to fly right into the windows.
+		// NOTE! In siege behavior in the map that this behavior was designed for (ep2_outland_10), the
+		// Hunters will only ever shoot at siege targets in siege mode. If you allow Hunters in siege mode
+		// to attack players or other NPCs, this accuracy bonus will apply unless we apply a bit more logic to it.
+		vecShoot = manipulator.ApplySpread(VECTOR_CONE_1DEGREES * 0.5, 1.0f);
+	}
+	else
+	{
+		vecShoot = manipulator.ApplySpread(VECTOR_CONE_4DEGREES, 1.0f);
+	}
+
+	QAngle angShoot;
+	VectorAngles(vecShoot, angShoot);
+
+	//CHunterFlechette *pFlechette = CHunterFlechette::FlechetteCreate(vecSrc, angShoot, this);
+
+	//pFlechette->AddEffects(EF_NOSHADOW);
+
+	vecShoot *= elite_hunter_flechette_speed.GetFloat();
+
+	//pFlechette->Shoot(vecShoot, bStriderBuster);
+
+	float flAmmoRatio = 1.0f;
+	float flDuration = RemapValClamped(flAmmoRatio, 0.0f, 1.0f, 0.5f, elite_hunter_flechette_duration.GetFloat());
+	float flRadius = RemapValClamped(flAmmoRatio, 0.0f, 1.0f, 4.0f, elite_hunter_flechette_radius.GetFloat());
+
+	CreateCombineBall(vecSrc, vecShoot, elite_hunter_flechette_mass.GetFloat(), 
+		flRadius, flDuration, MyNPCPointer());
+
+	if (nShotNum == 1 && pTargetEntity->Classify() == CLASS_PLAYER_ALLY_VITAL)
+	{
+		// Make this person afraid and react to ME, not to the flechettes. 
+		// Otherwise they could be scared into running towards the hunter.
+		CSoundEnt::InsertSound(SOUND_DANGER | SOUND_CONTEXT_REACT_TO_SOURCE | SOUND_CONTEXT_EXCLUDE_COMBINE, pTargetEntity->EyePosition(), 180.0f, 2.0f, this);
+	}
+
+	return bClamped;
+}
+
+void CNPC_EliteHunter::TraceAttack(const CTakeDamageInfo &inputInfo, const Vector &vecDir, trace_t *ptr, CDmgAccumulator *pAccumulator)
+{
+	CTakeDamageInfo info = inputInfo;
+
+	// Even though the damage might not hurt us, we want to react to it
+	// if it's from the player.
+	if (info.GetAttacker()->IsPlayer())
+	{
+		if (!HasMemory(bits_MEMORY_PROVOKED))
+		{
+			GetEnemies()->ClearMemory(info.GetAttacker());
+			Remember(bits_MEMORY_PROVOKED);
+			SetCondition(COND_LIGHT_DAMAGE);
+		}
+	}
+
+	// Elite hunters are resistant to damage from guns.
+	if ((info.GetDamageType() & DMG_BULLET) ||
+		(info.GetDamageType() & DMG_BUCKSHOT) ||
+		(info.GetDamageType() & DMG_CLUB) ||
+		(info.GetDamageType() & DMG_NEVERGIB))
+	{
+		//info.SetDamage(0.0);
+		//Do a ricochet effect if ineffective weapons are used.
+		g_pEffects->Ricochet(ptr->endpos, ptr->plane.normal);
+	}
+	else
+	{
+		//Use blood effect if hit by something that does real damage.
+		QAngle vecAngles;
+		VectorAngles(ptr->plane.normal, vecAngles);
+		DispatchParticleEffect("blood_impact_synth_01", ptr->endpos, vecAngles);
+		//Actual damage is done in this function call
+		BaseClass::TraceAttack(inputInfo, vecDir, ptr, pAccumulator);
+	}
+}
+
+BEGIN_DATADESC(CNPC_EliteHunter)
+END_DATADESC()
+
+LINK_ENTITY_TO_CLASS(npc_hunter_elite, CNPC_EliteHunter);
 
 //-------------------------------------------------------------------------------------------------
 //

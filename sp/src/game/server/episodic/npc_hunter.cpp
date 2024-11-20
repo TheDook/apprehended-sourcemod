@@ -1306,6 +1306,18 @@ public:
 	void	StriderBusterAttached( CBaseEntity *pAttached );
 	void	StriderBusterDetached( CBaseEntity *pAttached );
 
+
+	//----------------------------------
+	// CUSTOM STUFF
+	//----------------------------------
+	int GetFlechettesQueued() { return m_nFlechettesQueued; }
+	bool GetTopMuzzle() { return m_bTopMuzzle; }
+	static int GetTopGun() { return gm_nTopGunAttachment; }
+	static int GetBottomGun() { return gm_nBottomGunAttachment; }
+	bool GetMissLeft() { return m_bMissLeft; }
+	Vector GetLastSeenVector() { return m_vecEnemyLastSeen; }
+	void SwitchMuzzle() { m_bTopMuzzle = !m_bTopMuzzle; }
+
 private:
 
 	void ConsiderFlinching( const CTakeDamageInfo &info );
@@ -1324,7 +1336,7 @@ private:
 	bool HandleChargeImpact( Vector vecImpact, CBaseEntity *pEntity );
 
 	void BeginVolley( int nNum, float flStartTime );
-	bool ShootFlechette( CBaseEntity *pTargetEntity, bool bSingleShot );
+	virtual bool ShootFlechette( CBaseEntity *pTargetEntity, bool bSingleShot );
 	bool ShouldSeekTarget( CBaseEntity *pTargetEntity, bool bStriderBuster );
 	void GetShootDir( Vector &vecDir, const Vector &vecSrc, CBaseEntity *pTargetEntity, bool bStriderbuster, int nShotNum, bool bSingleShot );
 	bool ClampShootDir( Vector &vecDir );

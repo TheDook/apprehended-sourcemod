@@ -1198,7 +1198,9 @@ void CPropCombineBall::OnHitEntity( CBaseEntity *pHitEntity, float flSpeed, int 
 {
 	// Detonate on the strider + the bone followers in the strider
 	if ( FClassnameIs( pHitEntity, "npc_strider" ) || 
-		(pHitEntity->GetOwnerEntity() && FClassnameIs( pHitEntity->GetOwnerEntity(), "npc_strider" )) )
+		(pHitEntity->GetOwnerEntity() && FClassnameIs( pHitEntity->GetOwnerEntity(), "npc_strider" )) ||
+		FClassnameIs(pHitEntity, "npc_hunter_elite") ||
+		(pHitEntity->GetOwnerEntity() && FClassnameIs(pHitEntity->GetOwnerEntity(), "npc_hunter_elite")))
 	{
 		DoExplosion();
 		return;

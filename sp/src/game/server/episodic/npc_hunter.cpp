@@ -1317,10 +1317,11 @@ public:
 	bool GetMissLeft() { return m_bMissLeft; }
 	Vector GetLastSeenVector() { return m_vecEnemyLastSeen; }
 	void SwitchMuzzle() { m_bTopMuzzle = !m_bTopMuzzle; }
+	void ConsiderFlinching(const CTakeDamageInfo &info);
+	bool IsStaggering();
+	void StartStaggering();
 
 private:
-
-	void ConsiderFlinching( const CTakeDamageInfo &info );
 
 	void TaskFindDodgeActivity();
 
@@ -5627,6 +5628,16 @@ int CNPC_Hunter::OnTakeDamage( const CTakeDamageInfo &info )
 	return BaseClass::OnTakeDamage( myInfo );
 }
 
+bool CNPC_Hunter::IsStaggering()
+{
+	return HasCondition(COND_HUNTER_STAGGERED);
+}
+
+void CNPC_Hunter::StartStaggering()
+{
+	SetCondition( COND_HUNTER_STAGGERED );
+}
+
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
@@ -5648,7 +5659,7 @@ int CNPC_Hunter::OnTakeDamage_Alive( const CTakeDamageInfo &info )
 			
 			myInfo.SetDamage( sk_hunter_dmg_from_striderbuster.GetFloat() ) ;
 
-			SetCondition( COND_HUNTER_STAGGERED );
+			CNPC_Hunter::StartStaggering();
 		}
 		else if ( pInflictor->ClassMatches( GetClassname() ) && !( info.GetDamageType() == DMG_GENERIC ) )
 		{
@@ -5705,7 +5716,7 @@ int CNPC_Hunter::OnTakeDamage_Alive( const CTakeDamageInfo &info )
 
 			if ( !bHitByUnoccupiedCar )
 			{
-				SetCondition( COND_HUNTER_STAGGERED );
+				CNPC_Hunter::StartStaggering();
 			}
 		}
 		
@@ -5716,7 +5727,7 @@ int CNPC_Hunter::OnTakeDamage_Alive( const CTakeDamageInfo &info )
 	if ( ( myInfo.GetDamageType() & ( DMG_CRUSH | DMG_BLAST ) ) && ( myInfo.GetDamage() > 0 ) )
 	{
 		if ( !bHitByUnoccupiedCar )
-			SetCondition( COND_HUNTER_STAGGERED );
+			CNPC_Hunter::StartStaggering();
 	}
 	
 	if ( HasCondition( COND_HUNTER_STAGGERED ) )
@@ -5747,7 +5758,7 @@ int CNPC_Hunter::OnTakeDamage_Alive( const CTakeDamageInfo &info )
 		// We're taking a nonzero amount of damage.
 
 		// If we're not staggering, consider flinching!
-		if ( !HasCondition( COND_HUNTER_STAGGERED ) )
+		if ( !IsStaggering() )
 		{
 			ConsiderFlinching( info );
 		}
@@ -7167,6 +7178,8 @@ public:
 	void			Precache();
 	void			Spawn();
 	virtual void	TraceAttack(const CTakeDamageInfo &inputInfo, const Vector &vecDir, trace_t *ptr, CDmgAccumulator *pAccumulator) override;
+	virtual int		OnTakeDamage_Alive(const CTakeDamageInfo &info) override;
+	int				TakeDamageFromCombineBall(const CTakeDamageInfo &info);
 
 private:
 	void			GetShootDir(Vector &vecDir, const Vector &vecSrc, CBaseEntity *pTargetEntity, bool bStriderBuster, int nShotNum, bool bSingleShot);
@@ -7202,6 +7215,7 @@ ConVar elite_hunter_flechette_mass("elite_hunter_flechette_mass", "4");
 ConVar elite_hunter_flechette_radius("elite_hunter_flechette_radius", "4");
 ConVar elite_hunter_flechette_duration("elite_hunter_flechette_duration", "4");
 ConVar sk_elite_hunter_health("sk_elite_hunter_health", "420");
+ConVar elite_hunter_ar2_altfire_dmg("elite_hunter_ar2_altfire_dmg", "80");
 
 void CNPC_EliteHunter::Spawn()
 {
@@ -7449,6 +7463,44 @@ void CNPC_EliteHunter::TraceAttack(const CTakeDamageInfo &inputInfo, const Vecto
 		//Actual damage is done in this function call
 		BaseClass::TraceAttack(inputInfo, vecDir, ptr, pAccumulator);
 	}
+}
+
+int	CNPC_EliteHunter::TakeDamageFromCombineBall(const CTakeDamageInfo &info)
+{
+	float damage = info.GetDamage();
+
+	// If it's only an AR2 alt-fire, we don't take much damage
+	if (UTIL_IsAR2CombineBall(info.GetInflictor()))
+	{
+		damage = elite_hunter_ar2_altfire_dmg.GetFloat();
+	}
+
+	if (info.GetAttacker() && info.GetAttacker()->IsPlayer())
+	{
+		// Route combine ball damage through the regular skill level code.
+		damage = g_pGameRules->AdjustPlayerDamageInflicted(damage);
+	}
+
+	BaseClass::StartStaggering();
+
+	PainSound(info);
+
+	m_iHealth -= damage;
+
+	return damage;
+}
+
+int	CNPC_EliteHunter::OnTakeDamage_Alive(const CTakeDamageInfo &info)
+{
+	// don't take damage from my own weapons!!!
+	if (info.GetInflictor() && info.GetInflictor()->GetOwnerEntity() == this)
+		return 0;
+
+	// special interaction with combine balls
+	if (UTIL_IsCombineBall(info.GetInflictor()))
+		return TakeDamageFromCombineBall(info);
+
+	return BaseClass::OnTakeDamage_Alive(info);
 }
 
 BEGIN_DATADESC(CNPC_EliteHunter)

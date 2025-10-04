@@ -105,6 +105,74 @@ LINK_ENTITY_TO_CLASS(item_large_box_srounds, CItem_LargeBoxSRounds);
 LINK_ENTITY_TO_CLASS(item_ammo_pistol_large, CItem_LargeBoxSRounds);
 
 // ========================================================================
+//	>> BoxORounds
+// ========================================================================
+class CItem_BoxORounds : public CItem
+{
+public:
+	DECLARE_CLASS(CItem_BoxORounds, CItem);
+
+	void Spawn(void)
+	{
+		Precache();
+		SetModel("models/items/boxorounds.mdl");
+		BaseClass::Spawn();
+	}
+	void Precache(void)
+	{
+		PrecacheModel("models/items/boxorounds.mdl");
+	}
+	bool MyTouch(CBasePlayer *pPlayer)
+	{
+		if (ITEM_GiveAmmo(pPlayer, SIZE_AMMO_OICW, "OICW"))
+		{
+			if (g_pGameRules->ItemShouldRespawn(this) == GR_ITEM_RESPAWN_NO)
+			{
+				UTIL_Remove(this);
+			}
+			return true;
+		}
+		return false;
+	}
+};
+LINK_ENTITY_TO_CLASS(item_box_orounds, CItem_BoxORounds);
+LINK_ENTITY_TO_CLASS(item_ammo_oicw, CItem_BoxORounds);
+
+// ========================================================================
+//	>> LargeBoxORounds
+// ========================================================================
+class CItem_LargeBoxORounds : public CItem
+{
+public:
+	DECLARE_CLASS(CItem_LargeBoxORounds, CItem);
+
+	void Spawn(void)
+	{
+		Precache();
+		SetModel("models/items/boxorounds.mdl");
+		BaseClass::Spawn();
+	}
+	void Precache(void)
+	{
+		PrecacheModel("models/items/boxorounds.mdl");
+	}
+	bool MyTouch(CBasePlayer *pPlayer)
+	{
+		if (ITEM_GiveAmmo(pPlayer, SIZE_AMMO_OICW_LARGE, "OICW"))
+		{
+			if (g_pGameRules->ItemShouldRespawn(this) == GR_ITEM_RESPAWN_NO)
+			{
+				UTIL_Remove(this);
+			}
+			return true;
+		}
+		return false;
+	}
+};
+LINK_ENTITY_TO_CLASS(item_large_box_orounds, CItem_LargeBoxORounds);
+LINK_ENTITY_TO_CLASS(item_ammo_oicw_large, CItem_LargeBoxORounds);
+
+// ========================================================================
 //	>> BoxMRounds
 // ========================================================================
 class CItem_BoxMRounds : public CItem

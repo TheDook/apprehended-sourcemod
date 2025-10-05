@@ -12,7 +12,6 @@
 #include "player.h"
 #include "game.h"
 #include "in_buttons.h"
-#include "grenade_ar2.h"
 #include "ai_memory.h"
 #include "soundent.h"
 #include "rumble_shared.h"
@@ -177,8 +176,6 @@ CWeaponOicw::CWeaponOicw()
 //-----------------------------------------------------------------------------
 void CWeaponOicw::Precache(void)
 {
-	UTIL_PrecacheOther("grenade_ar2");
-
 	BaseClass::Precache();
 }
 

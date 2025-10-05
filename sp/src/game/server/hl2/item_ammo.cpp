@@ -672,6 +672,7 @@ enum
 	AMMOCRATE_GRENADES,
 	AMMOCRATE_357,
 	AMMOCRATE_CROSSBOW,
+	AMMOCRATE_OICW,
 	AMMOCRATE_AR2_ALTFIRE,
 	AMMOCRATE_SMG_ALTFIRE,
 	NUM_AMMO_CRATE_TYPES,
@@ -757,6 +758,7 @@ const char *CItem_AmmoCrate::m_lpzModelNames[NUM_AMMO_CRATE_TYPES] =
 	"models/items/ammocrate_grenade.mdl",	// Grenades
 	"models/items/ammocrate_smg1.mdl",		// 357
 	"models/items/ammocrate_smg1.mdl",	// Crossbow
+	"models/items/ammocrate_oicw.mdl",	// OICW
 	
 	//FIXME: This model is incorrect!
 	"models/items/ammocrate_ar2.mdl",		// Combine Ball 
@@ -774,6 +776,7 @@ const char *CItem_AmmoCrate::m_lpzAmmoNames[NUM_AMMO_CRATE_TYPES] =
 	"Grenade",
 	"357",
 	"XBowBolt",
+	"OICW",
 	"AR2AltFire",
 	"SMG1_Grenade",
 };
@@ -789,6 +792,7 @@ int CItem_AmmoCrate::m_nAmmoAmounts[NUM_AMMO_CRATE_TYPES] =
 	5,		// Grenades
 	50,		// 357
 	50,		// Crossbow
+	300,	// OICW
 	3,		// AR2 alt-fire
 	5,
 };
@@ -803,6 +807,7 @@ const char *CItem_AmmoCrate::m_pGiveWeapon[NUM_AMMO_CRATE_TYPES] =
 	"weapon_frag",		// Grenades
 	NULL,		// 357
 	NULL,		// Crossbow
+	NULL,		// OICW
 	NULL,		// AR2 alt-fire
 	NULL,		// SMG alt-fire
 };

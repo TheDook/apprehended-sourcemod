@@ -62,7 +62,10 @@ public:
 
 	virtual const Vector& GetBulletSpread(void)
 	{
-		static const Vector cone = VECTOR_CONE_1DEGREES;
+		static Vector cone;
+
+		cone = VECTOR_CONE_1DEGREES;
+
 		return cone;
 	}
 
@@ -245,7 +248,7 @@ void CWeaponOicw::FireRound(void)
 	m_nShotsFired++;
 	CBasePlayer *pPlayer = ToBasePlayer(GetOwner()); //This gets the current player holding the weapon
 	Vector vecSrc = pPlayer->Weapon_ShootPosition();   //This simply just gets the current position of the player.
-	Vector vecAim = pPlayer->GetAutoaimVector(0.0);   //This gets where the player is looking, but also corrected by autoaim.
+	Vector vecAim = pPlayer->GetAutoaimVector(AUTOAIM_SCALE_DEFAULT);   //This gets where the player is looking, but also corrected by autoaim.
 	//Remove a bullet from the clip
 	m_iClip1--;
 	// Fire the bullets
@@ -257,7 +260,7 @@ void CWeaponOicw::FireRound(void)
 	//Where to fire to
 	info.m_vecDirShooting = vecAim;
 	//Bullet spread cone
-	info.m_vecSpread = GetBulletSpread();
+	info.m_vecSpread = pPlayer->GetAttackSpread(this);
 	//Maximum distance the bullet can travel
 	info.m_flDistance = MAX_TRACE_LENGTH;
 	//Type of ammo to use
@@ -511,7 +514,7 @@ void CWeaponOicw::ToggleZoom(void)
 void CWeaponOicw::AddViewKick(void)
 {
 #define	EASY_DAMPEN			0.5f
-#define	MAX_VERTICAL_KICK	1.0f	//Degrees
+#define	MAX_VERTICAL_KICK	5.0f	//Degrees
 #define	SLIDE_LIMIT			2.0f	//Seconds
 
 	//Get the view kick

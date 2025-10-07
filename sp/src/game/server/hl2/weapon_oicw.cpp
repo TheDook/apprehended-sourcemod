@@ -201,7 +201,6 @@ void CWeaponOicw::Equip(CBaseCombatCharacter *pOwner)
 
 void CWeaponOicw::PrimaryAttack(void)
 {
-	//Msg("%d\n", m_iBurstSize );
 	if (m_bFireOnEmpty || m_iClip1 < 1)
 	{
 		return;
@@ -214,9 +213,6 @@ void CWeaponOicw::PrimaryAttack(void)
 	SetNextThink(gpGlobals->curtime);
 	m_flNextPrimaryAttack = gpGlobals->curtime + GetBurstCycleRate(); //GetBurstCycleRate returns 0.5
 	m_flNextSecondaryAttack = gpGlobals->curtime + GetBurstCycleRate();
-
-	// Pick up the rest of the burst through the think function.
-	//SetNextThink(gpGlobals->curtime + GetFireRate()); //GetFireRate returns 0.1
 	
 	CBasePlayer *pOwner = ToBasePlayer(GetOwner());
 	if (pOwner)
@@ -230,7 +226,6 @@ void CWeaponOicw::PrimaryThink(void)
 {
 	if (m_iBurstSize > 0 && m_iClip1 > 0)
 	{
-		//Msg("%0.3f, BANG!!!\n", gpGlobals->curtime);
 		m_iBurstSize--;
 		FireRound();
 		SetNextThink(gpGlobals->curtime + GetFireRate());
@@ -267,13 +262,8 @@ void CWeaponOicw::FireRound(void)
 	info.m_iAmmoType = m_iPrimaryAmmoType;
 	//How often visible tracers should be drawn
 	info.m_iTracerFreq = 1;
-	//Weapon damage
-	// info.m_flDamage = 10.0;
 	//Actually fire the bullet now that we've defined its properties
 	FireBullets(info);
-	/*pPlayer->FireBullets(1, vecSrc, vecAim, GetBulletSpread(), MAX_TRACE_LENGTH, 
-		m_iPrimaryAmmoType, 1, entindex(), 0, 10, GetOwner(), true, true);*/
-	//SendWeaponAnim(ACT_VM_PRIMARYATTACK); //This sends the animation for us shooting.
 	//Instead of primary attack animation, just use the recoil animation
 	SendWeaponAnim(ACT_VM_RECOIL3);
 	AddViewKick();

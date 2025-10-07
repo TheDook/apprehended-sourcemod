@@ -268,7 +268,7 @@ void CWeaponOicw::FireRound(void)
 	//How often visible tracers should be drawn
 	info.m_iTracerFreq = 1;
 	//Weapon damage
-	info.m_flDamage = 10.0;
+	// info.m_flDamage = 10.0;
 	//Actually fire the bullet now that we've defined its properties
 	FireBullets(info);
 	/*pPlayer->FireBullets(1, vecSrc, vecAim, GetBulletSpread(), MAX_TRACE_LENGTH, 

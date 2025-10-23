@@ -209,10 +209,18 @@ void CWeaponOicw::PrimaryAttack(void)
 	}
 	m_iBurstSize = BURST_BULLETS; //Always returns 3
 
+	if (m_iClip1 > 2) {
+		WeaponSound(BURST);
+	}
+	else if (m_iClip1 == 2) {
+		WeaponSound(WPN_DOUBLE);
+	}
+	else {
+		WeaponSound(SINGLE);
+	}
 	m_bShooting = true;
 	
 	// Call the think function directly so that the first round gets fired immediately.
-	WeaponSound(BURST);
 	SetThink(&CWeaponOicw::PrimaryThink);
 	SetNextThink(gpGlobals->curtime);
 	m_flNextPrimaryAttack = gpGlobals->curtime + GetBurstCycleRate(); //GetBurstCycleRate returns 0.5

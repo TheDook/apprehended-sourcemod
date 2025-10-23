@@ -55,6 +55,7 @@ public:
 	virtual void	Drop(const Vector &vecVelocity);
 
 	bool	Reload(void);
+	bool	CanHolster(void);
 
 	float	GetFireRate(void) { return 0.075f; }	// Bullet Shooting Speed
 	int		CapabilitiesGet(void) { return bits_CAP_WEAPON_RANGE_ATTACK1; }
@@ -80,6 +81,7 @@ public:
 private:
 	bool				m_bInZoom;
 	bool				m_bMustReload;
+	bool				m_bShooting;
 
 	void	CheckZoomToggle(void);
 	void	ToggleZoom(void);
@@ -207,6 +209,8 @@ void CWeaponOicw::PrimaryAttack(void)
 	}
 	m_iBurstSize = BURST_BULLETS; //Always returns 3
 
+	m_bShooting = true;
+	
 	// Call the think function directly so that the first round gets fired immediately.
 	WeaponSound(BURST);
 	SetThink(&CWeaponOicw::PrimaryThink);
@@ -233,6 +237,7 @@ void CWeaponOicw::PrimaryThink(void)
 	else
 	{
 		//Burst is over. Cancel the fire animation and future bursts.
+		m_bShooting = false;
 		SetThink(NULL);
 		SetWeaponIdleTime(gpGlobals->curtime);
 	}
@@ -371,8 +376,9 @@ Activity CWeaponOicw::GetPrimaryAttackActivity(void)
 //-----------------------------------------------------------------------------
 bool CWeaponOicw::Reload(void)
 {
-	//NOTE: If you want to override the holster reload, you'll have to override the ItemHolsterFrame function
-	//Msg("RELOAD\n");
+	if (m_bShooting)
+		return false;
+
 	if (BaseClass::Reload())
 	{
 		if (m_bInZoom)
@@ -385,6 +391,18 @@ bool CWeaponOicw::Reload(void)
 	}
 
 	return false;
+}
+
+//-----------------------------------------------------------------------------
+// Purpose: Override if we're waiting to release a shot
+// Output : Returns true on success, false on failure.
+//-----------------------------------------------------------------------------
+bool CWeaponOicw::CanHolster(void)
+{
+	if (m_bShooting)
+		return false;
+
+	return BaseClass::CanHolster();
 }
 
 void CWeaponOicw::DryFire(void)

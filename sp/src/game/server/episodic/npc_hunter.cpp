@@ -7177,14 +7177,14 @@ public:
 
 	void			Precache();
 	void			Spawn();
-	virtual void	TraceAttack(const CTakeDamageInfo &inputInfo, const Vector &vecDir, trace_t *ptr, CDmgAccumulator *pAccumulator) override;
-	virtual int		OnTakeDamage_Alive(const CTakeDamageInfo &info) override;
+	virtual void	TraceAttack(const CTakeDamageInfo &inputInfo, const Vector &vecDir, trace_t *ptr, CDmgAccumulator *pAccumulator);
+	virtual int		OnTakeDamage_Alive(const CTakeDamageInfo &info);
 	int				TakeDamageFromCombineBall(const CTakeDamageInfo &info);
 
 private:
 	void			GetShootDir(Vector &vecDir, const Vector &vecSrc, CBaseEntity *pTargetEntity, bool bStriderBuster, int nShotNum, bool bSingleShot);
 	bool			ClampShootDir(Vector &vecDir);
-	virtual bool	ShootFlechette(CBaseEntity *pTargetEntity, bool bSingleShot) override;
+	virtual bool	ShootFlechette(CBaseEntity *pTargetEntity, bool bSingleShot);
 
 	DECLARE_DATADESC();
 };
